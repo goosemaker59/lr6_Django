@@ -92,7 +92,7 @@ http://localhost:8000/api/redoc/
 
 ### Использование токена
 
-Добавьте заголовок в каждый запрос:
+Добаpython manage.py createsuperuserвьте заголовок в каждый запрос:
 ```
 Authorization: Bearer <access_token>
 ```
