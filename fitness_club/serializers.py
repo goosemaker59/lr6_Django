@@ -88,10 +88,16 @@ class TrainerDetailSerializer(serializers.ModelSerializer):
 
 class TrainerWriteSerializer(serializers.ModelSerializer):
     """Сериализатор для создания/обновления тренера."""
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        required=True,
+        help_text='ID пользователя, которого назначаем тренером'
+    )
+
     class Meta:
         model = Trainer
         fields = [
-            'specialization', 'bio', 'experience_years',
+            'user', 'specialization', 'bio', 'experience_years',
             'hourly_rate', 'photo', 'is_active',
         ]
 
