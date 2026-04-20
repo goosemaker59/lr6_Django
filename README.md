@@ -234,40 +234,6 @@ GET /api/trainers/?ordering=-experience_years
 GET /api/bookings/?status=confirmed
 GET /api/bookings/?training_class=3
 ```
-
----
-
-## 🧪 Примеры запросов (cURL)
-
-**Получить токен:**
-```bash
-curl -X POST http://localhost:8000/api/token/ \
-  -H "Content-Type: application/json" \
-  -d '{"username": "member_петров", "password": "member123"}'
-```
-
-**Получить список занятий:**
-```bash
-curl http://localhost:8000/api/classes/ \
-  -H "Authorization: Bearer <ACCESS_TOKEN>"
-```
-
-**Записаться на занятие:**
-```bash
-curl -X POST http://localhost:8000/api/bookings/ \
-  -H "Authorization: Bearer <ACCESS_TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{"training_class": 1}'
-```
-
-**Оставить отзыв:**
-```bash
-curl -X PATCH http://localhost:8000/api/bookings/1/ \
-  -H "Authorization: Bearer <ACCESS_TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{"rating": 5, "review": "Отличная тренировка!"}'
-```
-
 ---
 
 ## 🛠️ Полезные команды Docker
@@ -296,9 +262,6 @@ docker compose exec web python manage.py migrate
 
 # Создать суперпользователя
 docker compose exec web python manage.py createsuperuser
-
-# Заполнить тестовыми данными
-docker compose exec web python manage.py seed_data
 
 # Создать миграции после изменения моделей
 docker compose exec web python manage.py makemigrations
@@ -332,18 +295,6 @@ myproject/
 ├── .env.example
 └── README.md
 ```
-
----
-
-## 🔒 Тестовые аккаунты (после `seed_data`)
-
-| Роль | Логин | Пароль |
-|---|---|---|
-| Суперпользователь | `admin` | задаётся при `createsuperuser` |
-| Тренер | `trainer_смирнов` | `trainer123` |
-| Участник | `member_петров` | `member123` |
-
----
 
 ## 📦 Стек технологий
 
