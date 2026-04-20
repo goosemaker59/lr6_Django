@@ -1,19 +1,25 @@
-"""
-URL configuration for fitness_club project.
-"""
-from django.contrib import admin
 from django.urls import path, include
-from drf_spectacular.views import (
-    SpectacularAPIView,
-    SpectacularRedocView,
-    SpectacularSwaggerView,
+from rest_framework.routers import DefaultRouter
+
+from .views import (
+    RegisterView,
+    MeView,
+    TrainerViewSet,
+    MemberProfileViewSet,
+    MembershipViewSet,
+    TrainingClassViewSet,
+    BookingViewSet,
 )
 
+router = DefaultRouter()
+router.register(r'trainers', TrainerViewSet, basename='trainer')
+router.register(r'members', MemberProfileViewSet, basename='member')
+router.register(r'memberships', MembershipViewSet, basename='membership')
+router.register(r'classes', TrainingClassViewSet, basename='trainingclass')
+router.register(r'bookings', BookingViewSet, basename='booking')
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include('api.urls')),
-    # Swagger/OpenAPI документация
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    path('register/', RegisterView.as_view(), name='register'),
+    path('me/', MeView.as_view(), name='me'),
+    path('', include(router.urls)),
 ]

@@ -1,232 +1,360 @@
-# Fitness Club REST API
+# 🏋️ Fitness Club API
 
-RESTful API для фитнес-клуба, разработанное с использованием Django Rest Framework.
+RESTful API для управления фитнес-клубом, построенное на **Django REST Framework** с **JWT-аутентификацией**, **PostgreSQL** и задокументированное через **Swagger UI**.
 
-## Возможности
+---
 
-- ✅ Полная поддержка CRUD операций для всех моделей
-- ✅ JWT аутентификация (обязательная для всех эндпоинтов)
-- ✅ Пагинация для всех списковых представлений
-- ✅ Swagger документация с кнопкой "Authorize" для JWT токенов
-- ✅ Связанные модели данных (Member, Membership, Trainer)
-- ✅ Фильтрация и поиск
-- ✅ Готово к интеграции с React/Vue.js или мобильными приложениями
+## 📐 Архитектура базы данных
 
-## Структура базы данных
+Проект содержит **5 связанных таблиц**:
 
-API использует 3 связанные таблицы:
+```
+User (встроенная Django)
+ ├── Trainer          (OneToOne → User)   — профиль тренера
+ └── MemberProfile    (OneToOne → User)   — профиль участника
+      ├── Membership   (ForeignKey → MemberProfile)  — абонемент
+      └── Booking      (ForeignKey → MemberProfile)  — запись на занятие
+               └── TrainingClass (ForeignKey → Trainer) — групповое занятие
+```
 
-1. **Trainer** (Тренер) - информация о тренерах
-   - Связан с User (OneToOne)
-   - Специализация, опыт работы, контакты
+| Таблица         | Описание                                             |
+|-----------------|------------------------------------------------------|
+| `Trainer`       | Тренеры клуба: специализация, опыт, ставка           |
+| `MemberProfile` | Профили участников: цель, параметры, контакты        |
+| `Membership`    | Абонементы: тариф, статус, срок действия             |
+| `TrainingClass` | Групповые занятия: расписание, вместимость, тренер   |
+| `Booking`       | Записи участников на занятия + оценка и отзыв        |
 
-2. **Member** (Участник) - информация об участниках клуба
-   - Связан с User (OneToOne)
-   - Контактная информация, дата рождения
+---
 
-3. **Membership** (Абонемент) - информация об абонементах
-   - Связан с Member (ForeignKey)
-   - Связан с Trainer (ForeignKey, опционально)
-   - Тип абонемента, даты, статус, цена
+## 🚀 Быстрый старт
 
-## Установка
+### 1. Клонировать проект
 
-1. Установите зависимости:
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/ваш-username/fitness-club-api.git
+cd fitness-club-api/myproject
 ```
 
-2. Примените миграции:
+### 2. Создать файл `.env`
+
 ```bash
-python manage.py makemigrations
-python manage.py migrate
+copy .env.example .env   # Windows
+cp .env.example .env     # Linux / macOS
 ```
 
-3. Создайте суперпользователя (опционально):
+Отредактируйте `.env` при необходимости (по умолчанию всё работает «из коробки»).
+
+### 3. Запустить Docker-контейнеры
+
 ```bash
-python manage.py createsuperuser
+docker compose up --build
 ```
 
-4. Запустите сервер разработки:
+### 4. Применить миграции
+
 ```bash
-python manage.py runserver
+docker compose exec web python manage.py migrate
 ```
 
-## Использование API
+### 5. Создать суперпользователя
 
-### Базовый URL
-```
-http://localhost:8000/api/
-```
-
-### Swagger документация
-```
-http://localhost:8000/api/docs/
+```bash
+docker compose exec web python manage.py createsuperuser
 ```
 
-### Redoc документация
+### 6. Заполнить БД тестовыми данными (опционально)
+
+```bash
+docker compose exec web python manage.py seed_data
 ```
-http://localhost:8000/api/redoc/
-```
 
-## Аутентификация
+### 7. Готово! 🎉
 
-### Получение JWT токена
+| Адрес | Описание |
+|---|---|
+| http://localhost:8000/swagger/ | Swagger UI (документация + тест) |
+| http://localhost:8000/redoc/ | ReDoc (альтернативная документация) |
+| http://localhost:8000/admin/ | Django Admin |
+| http://localhost:8000/api/ | Корень API |
 
-Отправьте POST запрос на `/api/auth/token/` с учетными данными:
+---
 
-```json
+## 🔐 Аутентификация через JWT
+
+### Шаг 1 — Получить токен
+
+```http
+POST /api/token/
+Content-Type: application/json
+
 {
-  "username": "your_username",
-  "password": "your_password"
+  "username": "member_петров",
+  "password": "member123"
 }
 ```
 
 Ответ:
+
 ```json
 {
-  "access": "eyJ0eXAiOiJKV1QiLCJhbGc...",
-  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+  "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
-### Использование токена
+### Шаг 2 — Использовать токен
 
-Добаpython manage.py createsuperuserвьте заголовок в каждый запрос:
+Добавьте заголовок ко всем запросам:
+
 ```
-Authorization: Bearer <access_token>
-```
-
-### Обновление токена
-
-Отправьте POST запрос на `/api/auth/token/refresh/`:
-```json
-{
-  "refresh": "your_refresh_token"
-}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-## Эндпоинты API
+### Шаг 3 — Обновить токен (после истечения 1 часа)
 
-### Тренеры (Trainers)
-- `GET /api/trainers/` - Список тренеров (с пагинацией)
-- `GET /api/trainers/{id}/` - Детали тренера
-- `POST /api/trainers/` - Создать тренера
-- `PUT /api/trainers/{id}/` - Обновить тренера
-- `PATCH /api/trainers/{id}/` - Частично обновить тренера
-- `DELETE /api/trainers/{id}/` - Удалить тренера
-
-**Фильтры:**
-- `?specialization=название` - Фильтр по специализации
-
-### Участники (Members)
-- `GET /api/members/` - Список участников (с пагинацией)
-- `GET /api/members/{id}/` - Детали участника
-- `POST /api/members/` - Создать участника
-- `PUT /api/members/{id}/` - Обновить участника
-- `PATCH /api/members/{id}/` - Частично обновить участника
-- `DELETE /api/members/{id}/` - Удалить участника
-- `GET /api/members/{id}/memberships/` - Абонементы участника
-
-### Абонементы (Memberships)
-- `GET /api/memberships/` - Список абонементов (с пагинацией)
-- `GET /api/memberships/{id}/` - Детали абонемента
-- `POST /api/memberships/` - Создать абонемент
-- `PUT /api/memberships/{id}/` - Обновить абонемент
-- `PATCH /api/memberships/{id}/` - Частично обновить абонемент
-- `DELETE /api/memberships/{id}/` - Удалить абонемент
-- `GET /api/memberships/active/` - Список активных абонементов
-
-**Фильтры:**
-- `?member_id=id` - Фильтр по участнику
-- `?trainer_id=id` - Фильтр по тренеру
-- `?status=active|expired|suspended` - Фильтр по статусу
-- `?membership_type=basic|premium|vip` - Фильтр по типу
-
-## Использование Swagger UI
-
-1. Откройте `http://localhost:8000/api/docs/` в браузере
-2. Нажмите кнопку **"Authorize"** в правом верхнем углу
-3. Введите JWT токен в формате: `Bearer <your_access_token>`
-   - Или просто: `<your_access_token>` (Bearer будет добавлен автоматически)
-4. Нажмите "Authorize"
-5. Теперь вы можете отправлять авторизованные запросы прямо из браузера
-
-## Примеры запросов
-
-### Создание пользователя и участника
-
-1. Создайте пользователя через Django admin или используйте существующего
-2. Создайте участника:
-
-```bash
-POST /api/members/
-Authorization: Bearer <token>
+```http
+POST /api/token/refresh/
 Content-Type: application/json
 
 {
-  "user_id": 1,
-  "phone": "+7 999 123 45 67",
-  "date_of_birth": "1990-01-15",
-  "address": "Москва, ул. Примерная, д. 1"
+  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
-### Создание абонемента
+### Использование авторизации в Swagger UI
+
+1. Откройте http://localhost:8000/swagger/
+2. Нажмите кнопку **Authorize** 🔒 (в верхнем правом углу)
+3. В поле **Bearer** введите: `Bearer <ваш_access_токен>`
+4. Нажмите **Authorize** → **Close**
+5. Все запросы теперь отправляются с вашим токеном ✅
+
+---
+
+## 📡 Эндпоинты API
+
+### Аутентификация
+
+| Метод | URL | Описание | Авторизация |
+|---|---|---|---|
+| POST | `/api/register/` | Регистрация нового пользователя | ❌ |
+| POST | `/api/token/` | Получить JWT токен | ❌ |
+| POST | `/api/token/refresh/` | Обновить access токен | ❌ |
+| POST | `/api/token/verify/` | Проверить токен | ❌ |
+| GET/PUT/PATCH | `/api/me/` | Данные текущего пользователя | ✅ |
+
+### Тренеры (`/api/trainers/`)
+
+| Метод | URL | Описание | Права |
+|---|---|---|---|
+| GET | `/api/trainers/` | Список тренеров | Авторизованный |
+| POST | `/api/trainers/` | Создать тренера | Администратор |
+| GET | `/api/trainers/{id}/` | Профиль тренера | Авторизованный |
+| PUT/PATCH | `/api/trainers/{id}/` | Обновить тренера | Администратор |
+| DELETE | `/api/trainers/{id}/` | Удалить тренера | Администратор |
+| GET | `/api/trainers/{id}/schedule/` | Расписание тренера | Авторизованный |
+
+### Участники (`/api/members/`)
+
+| Метод | URL | Описание | Права |
+|---|---|---|---|
+| GET | `/api/members/` | Мой профиль (или все — для admin) | Авторизованный |
+| POST | `/api/members/` | Создать профиль | Авторизованный |
+| GET | `/api/members/{id}/` | Профиль участника | Владелец / Admin |
+| PUT/PATCH | `/api/members/{id}/` | Обновить профиль | Владелец / Admin |
+| DELETE | `/api/members/{id}/` | Удалить профиль | Владелец / Admin |
+| GET | `/api/members/{id}/bookings/` | Мои записи на занятия | Владелец / Admin |
+
+### Абонементы (`/api/memberships/`)
+
+| Метод | URL | Описание | Права |
+|---|---|---|---|
+| GET | `/api/memberships/` | Мои абонементы | Авторизованный |
+| POST | `/api/memberships/` | Оформить абонемент | Авторизованный |
+| GET | `/api/memberships/{id}/` | Детали абонемента | Авторизованный |
+| PUT/PATCH | `/api/memberships/{id}/` | Обновить абонемент | Авторизованный |
+| DELETE | `/api/memberships/{id}/` | Удалить абонемент | Администратор |
+
+### Занятия (`/api/classes/`)
+
+| Метод | URL | Описание | Права |
+|---|---|---|---|
+| GET | `/api/classes/` | Список занятий | Авторизованный |
+| POST | `/api/classes/` | Создать занятие | Администратор |
+| GET | `/api/classes/{id}/` | Детали занятия | Авторизованный |
+| PUT/PATCH | `/api/classes/{id}/` | Обновить занятие | Администратор |
+| DELETE | `/api/classes/{id}/` | Удалить занятие | Администратор |
+| GET | `/api/classes/{id}/participants/` | Список участников | Администратор |
+
+### Записи на занятия (`/api/bookings/`)
+
+| Метод | URL | Описание | Права |
+|---|---|---|---|
+| GET | `/api/bookings/` | Мои записи | Авторизованный |
+| POST | `/api/bookings/` | Записаться на занятие | Авторизованный |
+| GET | `/api/bookings/{id}/` | Детали записи | Авторизованный |
+| PUT/PATCH | `/api/bookings/{id}/` | Обновить запись (отзыв/оценка) | Авторизованный |
+| DELETE | `/api/bookings/{id}/` | Удалить запись | Авторизованный |
+| POST | `/api/bookings/{id}/cancel/` | Отменить запись | Авторизованный |
+
+---
+
+## 🔍 Фильтрация, поиск и сортировка
+
+Все списковые эндпоинты поддерживают **пагинацию** (по 10 записей, `?page=2&page_size=5`).
+
+### Занятия
+
+```
+GET /api/classes/?difficulty=3
+GET /api/classes/?trainer=1
+GET /api/classes/?is_cancelled=false
+GET /api/classes/?scheduled_after=2024-01-01T00:00:00
+GET /api/classes/?upcoming=true
+GET /api/classes/?has_spots=true
+GET /api/classes/?price_max=500
+GET /api/classes/?search=йога
+GET /api/classes/?ordering=scheduled_at
+GET /api/classes/?ordering=-price
+```
+
+### Тренеры
+
+```
+GET /api/trainers/?specialization=yoga
+GET /api/trainers/?is_active=true
+GET /api/trainers/?search=Смирнов
+GET /api/trainers/?ordering=-experience_years
+```
+
+### Записи
+
+```
+GET /api/bookings/?status=confirmed
+GET /api/bookings/?training_class=3
+```
+
+---
+
+## 🧪 Примеры запросов (cURL)
+
+**Получить токен:**
+```bash
+curl -X POST http://localhost:8000/api/token/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "member_петров", "password": "member123"}'
+```
+
+**Получить список занятий:**
+```bash
+curl http://localhost:8000/api/classes/ \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+**Записаться на занятие:**
+```bash
+curl -X POST http://localhost:8000/api/bookings/ \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"training_class": 1}'
+```
+
+**Оставить отзыв:**
+```bash
+curl -X PATCH http://localhost:8000/api/bookings/1/ \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"rating": 5, "review": "Отличная тренировка!"}'
+```
+
+---
+
+## 🛠️ Полезные команды Docker
 
 ```bash
-POST /api/memberships/
-Authorization: Bearer <token>
-Content-Type: application/json
+# Запустить всё
+docker compose up --build
 
-{
-  "member_id": 1,
-  "membership_type": "premium",
-  "start_date": "2026-01-01",
-  "end_date": "2026-12-31",
-  "price": "50000.00",
-  "status": "active",
-  "trainer_id": 1
-}
+# Запустить в фоне
+docker compose up -d
+
+# Остановить (данные сохранятся)
+docker compose down
+
+# Перезапустить
+docker compose restart
+
+# Логи
+docker compose logs -f web
+
+# Войти в контейнер
+docker compose exec web bash
+
+# Применить миграции
+docker compose exec web python manage.py migrate
+
+# Создать суперпользователя
+docker compose exec web python manage.py createsuperuser
+
+# Заполнить тестовыми данными
+docker compose exec web python manage.py seed_data
+
+# Создать миграции после изменения моделей
+docker compose exec web python manage.py makemigrations
 ```
 
-## Пагинация
+---
 
-Все списковые эндпоинты поддерживают пагинацию:
-- Размер страницы: 10 элементов (по умолчанию)
-- Параметры: `?page=1`, `?page=2`, и т.д.
+## 🏗️ Структура проекта
 
-Ответ включает:
-```json
-{
-  "count": 100,
-  "next": "http://localhost:8000/api/trainers/?page=2",
-  "previous": null,
-  "results": [...]
-}
+```
+myproject/
+├── config/                    # Настройки Django
+│   ├── settings.py
+│   ├── urls.py                # Главный роутер + Swagger
+│   └── wsgi.py
+├── fitness_club/              # Основное приложение
+│   ├── models.py              # 5 моделей БД
+│   ├── serializers.py         # DRF сериализаторы
+│   ├── views.py               # ViewSets (CRUD)
+│   ├── urls.py                # Роутер приложения
+│   ├── permissions.py         # Кастомные права доступа
+│   ├── filters.py             # Кастомные фильтры
+│   ├── admin.py               # Django Admin
+│   └── management/
+│       └── commands/
+│           └── seed_data.py   # Команда заполнения БД
+├── docker-compose.yml
+├── Dockerfile
+├── requirements.txt
+├── manage.py
+├── .env.example
+└── README.md
 ```
 
-## Технологии
+---
 
-- Django 5.0.1
-- Django REST Framework 3.14.0
-- djangorestframework-simplejwt 5.3.1 (JWT аутентификация)
-- drf-spectacular 0.27.0 (Swagger/OpenAPI документация)
-- django-cors-headers 4.3.1 (CORS поддержка)
+## 🔒 Тестовые аккаунты (после `seed_data`)
 
-## Разработка
+| Роль | Логин | Пароль |
+|---|---|---|
+| Суперпользователь | `admin` | задаётся при `createsuperuser` |
+| Тренер | `trainer_смирнов` | `trainer123` |
+| Участник | `member_петров` | `member123` |
 
-Для разработки рекомендуется использовать виртуальное окружение:
+---
 
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# или
-venv\Scripts\activate  # Windows
+## 📦 Стек технологий
 
-pip install -r requirements.txt
-```
-
-## Лицензия
-
-Этот проект создан в образовательных целях.
+| Технология | Версия | Назначение |
+|---|---|---|
+| Python | 3.11 | Язык программирования |
+| Django | 4.2 | Веб-фреймворк |
+| Django REST Framework | 3.15 | REST API |
+| djangorestframework-simplejwt | 5.3 | JWT аутентификация |
+| drf-yasg | 1.21 | Swagger / OpenAPI документация |
+| django-filter | 23.5 | Фильтрация запросов |
+| django-cors-headers | 4.3 | CORS для фронтенда |
+| PostgreSQL | 15 | База данных |
+| Docker + Compose | — | Контейнеризация |
