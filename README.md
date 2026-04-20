@@ -284,10 +284,7 @@ myproject/
 │   ├── urls.py                # Роутер приложения
 │   ├── permissions.py         # Кастомные права доступа
 │   ├── filters.py             # Кастомные фильтры
-│   ├── admin.py               # Django Admin
-│   └── management/
-│       └── commands/
-│           └── seed_data.py   # Команда заполнения БД
+│   └── admin.py               # Django Admin
 ├── docker-compose.yml
 ├── Dockerfile
 ├── requirements.txt
